@@ -1,0 +1,111 @@
+:root {
+    --font-size-base: 16px;
+    --size-unit: 1rem;
+    --bg-color-card: rgb(210, 210, 210);
+}
+
+.features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-unit);
+}
+
+.features-card {
+    /* Property of as a flexbox container */
+    display: flex;
+    flex-direction: column;
+
+    /* Other prop */
+    margin: var(--size-unit);
+    border-radius: 5px; /* all of them */
+    /*padding: 6px 16px; !* 6 top and bottom, 16 left and right *!*/
+    background: var(--bg-color-card);
+    /*position: relative;*/
+    border: 1px solid #000000;
+}
+
+.features-card:hover {
+    box-shadow: 1px 1px 5px hsla(0, 0%, 0%, 0.1),
+    1px 1px 10px hsla(0, 0%, 0%, 0.1);
+}
+
+/*FEATURE HEADER START - from here down to refactor */
+
+.features-card-header {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    width: 300px;
+    height: 80px;
+    margin: -6px -16px 0px -16px; /* Replaced #{-$card-v-padding} and #{-$card-h-padding} with -6px and -16px */
+    padding: 6px 16px 2px 16px; /* Replaced $card-v-padding and $card-h-padding with 6px and 16px */
+    border-top-left-radius: 5px; /* Replaced $border-radius with 5px */
+    border-top-right-radius: 5px; /* Replaced $border-radius with 5px */
+    border-bottom: 1px solid rgba(209, 213, 219, 0.95); /* Replaced adjust-color($gray-light-border, $alpha: -0.05) with rgba(209, 213, 219, 0.95) */
+    background: #cab479; /* Replaced $gray-100 with #f3f4f6 */
+    gap: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /*white-space: nowrap;*/
+}
+
+.features-card-header .top-row {
+    display: flex;
+    width: 100%; /*if not it shrinks*/
+    justify-content: space-between; /* only two elements, so all space in the middle*/
+    /*align-items: center;*/
+}
+
+.features-card-header .top-row .feature-name {
+    gap: 8px;
+    font-weight: 600;
+}
+
+.features-card-header .top-row .reset-icon {
+    gap: 8px;
+    font-weight: 600;
+}
+
+.features-card-header .proposal {
+    display: flex;
+
+}
+
+.features-card-header .proposal .value{
+    font-size: 14px;
+    color: dimgray;
+    /*font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;*/
+}
+
+.features-card-header .proposal .hypothesis{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 5px;
+}
+
+.features-card-header .proposal .hypothesis .change {
+    font-size: 0.8rem;
+    padding: 0px 14px 8px 5px;
+    margin: -5px 0 0 0;
+    color: hsl(122, 40.97%, 44.51%);
+}
+
+.features-card-header .proposal .hypothesis .arrow {
+    color: black;
+}
+
+/*FEATURE HEADER END*/
+
+
+/*PLOT START */
+.feature-hist {
+    position: relative;
+    width: 100%;
+}
+
+.svg-hist {
+/*    dummy class controlled by d3 */
+}
+/*PLOT END */
