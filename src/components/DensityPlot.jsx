@@ -114,20 +114,20 @@ const DensityPlot = ({data}) => {
     const getCurrentOrChangedValueJSX = function () {
         if (data.currentValue !== data.changedValue) {
             return (
-                <div className="proposal">
-                    <span className="value">{data.currentValue}</span>
-                    <div className="hypothesis">
-                        <span className="change">{data.changedValue - data.currentValue}</span>
-                        <span className="arrow">------&gt;</span>
+                <>
+                    <span className="features-card-header-bottom-row-value">{data.currentValue}</span>
+                    <div className="features-card-header-bottom-row-hypothesis">
+                        <span>------&gt;</span>
+                        <span className="features-card-header-bottom-row-hypothesis-change">{data.changedValue - data.currentValue}</span>
                     </div>
-                    <span className="value" data-test="updated-value">{data.changedValue}</span>
-                </div>
+                    <span className="features-card-header-bottom-row-value" data-test="updated-value">{data.changedValue}</span>
+                </>
             );
         } else {
             return (
-                <div className="proposal">
+                <>
                     <span className="value">{data.currentValue}</span>
-                </div>
+                </>
             );
         }
     }
@@ -135,8 +135,8 @@ const DensityPlot = ({data}) => {
     return (
         <div className="features-card">
             <div className="features-card-header">
-                <div className="top-row">
-                    <span className="feature-name">{data.featureDisplayName}</span>
+                <div className="features-card-header-top-row">
+                    <span className="features-card-header-top-row-name">{data.featureDisplayName}</span>
                     <div>
                         <label htmlFor="difficulty-selector">Difficulty: </label>
                         <select id="difficulty-selector" value={difficulty}
@@ -153,57 +153,63 @@ const DensityPlot = ({data}) => {
                             <option value={'lock'}>Impossible</option>
                         </select>
                     </div>
-                    <span className="reset-icon">ICON</span>
+                    {/*<span className="features-card-header-top-row-reset">ICON</span>*/}
                 </div>
-                {getCurrentOrChangedValueJSX()}
+                <div className="features-card-header-bottom-row">
+                    {getCurrentOrChangedValueJSX()}
+                </div>
             </div>
-            <div className="feature-plot">
+            <div className="features-card-body">
                 <svg ref={svgRef}></svg>
-                <h6>Left Boundary</h6>
-                <input
-                    id="left-slider"
-                    type="range"
-                    min={data.histEdge[0]}
-                    max={data.histEdge[data.histEdge.length - 1]}
-                    step={(data.histEdge[data.histEdge.length - 1] - data.histEdge[0]) / 100}
-                    value={leftRange}
-                    onChange={(e) => {
-                        const newLeft = Number(e.target.value);
-                        if (newLeft < rightRange) {
-                            // @dataFormat: acceptableRanges is a map, where the key is the variable name
-                            // in the format of constraits.allFeaturesNames. es 'distance_last_high' and not
-                            // 'Hyperglycemia lag (hours)' and the value is an array
-                            // of numbers, as per JSdoc documentation [lower bound, upper bound]
-                            //
-                            // Update both the left and right to accomodate the current data format
-                            // @verified: I update multiple plots at the same time.
-                            tempConstraints.current.acceptableRanges.set(data.featureName, [newLeft, rightRange]);
+                <div className="features-card-body-sliders">
+                    <div>Left Boundary</div>
+                    <input
+                        id="left-slider"
+                        type="range"
+                        min={data.histEdge[0]}
+                        max={data.histEdge[data.histEdge.length - 1]}
+                        step={(data.histEdge[data.histEdge.length - 1] - data.histEdge[0]) / 100}
+                        value={leftRange}
+                        onChange={(e) => {
+                            const newLeft = Number(e.target.value);
+                            if (newLeft < rightRange) {
+                                // @dataFormat: acceptableRanges is a map, where the key is the variable name
+                                // in the format of constraits.allFeaturesNames. es 'distance_last_high' and not
+                                // 'Hyperglycemia lag (hours)' and the value is an array
+                                // of numbers, as per JSdoc documentation [lower bound, upper bound]
+                                //
+                                // Update both the left and right to accomodate the current data format
+                                // @verified: I update multiple plots at the same time.
+                                tempConstraints.current.acceptableRanges.set(data.featureName, [newLeft, rightRange]);
 
-                            // triggering the update after setting the temporary constraints
-                            setLeftRange(newLeft)};
+                                // triggering the update after setting the temporary constraints
+                                setLeftRange(newLeft)
+                            }
+                            ;
 
                         }
-                    }
-                />
-                <span>{leftRange.toFixed(2)}</span>
-
-                <h6>Right Boundary</h6>
-                <input
-                    id="right-slider"
-                    type="range"
-                    min={data.histEdge[0]}
-                    max={data.histEdge[data.histEdge.length - 1]}
-                    step={(data.histEdge[data.histEdge.length - 1] - data.histEdge[0]) / 100}
-                    value={rightRange}
-                    onChange={(e) => {
-                        const newRight = Number(e.target.value);
-                        if (newRight > leftRange) {
-                        tempConstraints.current.acceptableRanges.set(data.featureName, [leftRange, newRight]);
-                        setRightRange(newRight);
                         }
-                    }}
-                />
-                <span>{rightRange.toFixed(2)}</span>
+                    />
+                    <span>{leftRange.toFixed(2)}</span>
+
+                    <div>Right Boundary</div>
+                    <input
+                        id="right-slider"
+                        type="range"
+                        min={data.histEdge[0]}
+                        max={data.histEdge[data.histEdge.length - 1]}
+                        step={(data.histEdge[data.histEdge.length - 1] - data.histEdge[0]) / 100}
+                        value={rightRange}
+                        onChange={(e) => {
+                            const newRight = Number(e.target.value);
+                            if (newRight > leftRange) {
+                                tempConstraints.current.acceptableRanges.set(data.featureName, [leftRange, newRight]);
+                                setRightRange(newRight);
+                            }
+                        }}
+                    />
+                    <span>{rightRange.toFixed(2)}</span>
+                </div>
             </div>
         </div>
 
