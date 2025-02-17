@@ -56,9 +56,8 @@ const DensityPlot = ({data}) => {
             .domain([0, Math.max(...yValues)])
             .range([height - margin.bottom, margin.top]);
 
-        // Create line
-        // TODO: verify that this is setting up a generator, d is defined below,
-        // when i use .datum in the svg.append("path")
+        // Create line generator
+        // d is defined below, when i use .datum in the svg.append("path")
         const curveLine = d3.line()
             .x(d => xScale(d[0]))
             .y(d => yScale(d[1]));
@@ -76,41 +75,56 @@ const DensityPlot = ({data}) => {
             .attr("opacity", 0.3)  // Make the fill semi-transparent
             .attr("d", areaGenerator);
 
-        // Full curve
+        // clipPath definition
+        svg.append("defs")
+            .append("clipPath")
+            .attr("id", `visible-area-${data.featureName}`) // Unique id, otherwise all plots are affected by a slider change.
+            .append("rect")
+            .attr("x", xScale(leftRange))
+            .attr("y", margin.top)
+            .attr("width", xScale(rightRange) - xScale(leftRange))
+            .attr("height", height - margin.top - margin.bottom);
+
+        // Create our visualization in two layers
+        // Layer 1: Gray base (everything grayed out)
+        const baseData = xValues.map((x, i) => [x, yValues[i]]);
+
+        // Add the gray area
         svg.append("path")
-            .datum(xValues.map((x, i) => [x, yValues[i]]))
+            .datum(baseData)
+            .attr("fill", "lightgray")
+            .attr("opacity", 0.5)
+            .attr("d", areaGenerator);
+
+        // Add the gray line
+        svg.append("path")
+            .datum(baseData)
+            .attr("fill", "none")
+            .attr("stroke", "lightgray")
+            .attr("stroke-width", 2)
+            .attr("d", curveLine);
+
+        // Layer 2: Colored portion (clipped to show only the selected range)
+        // Create a group for our clipped content
+        const coloredGroup = svg.append("g")
+            .attr("clip-path", `url(#visible-area-${data.featureName})`); // Unique id, otherwise all plots are affected by a slider change.
+
+        // Add the colored area within the clipped group
+        coloredGroup.append("path")
+            .datum(baseData)
+            .attr("fill", "steelblue")
+            .attr("opacity", 0.3)
+            .attr("d", areaGenerator);
+
+        // Add the colored line within the clipped group
+        coloredGroup.append("path")
+            .datum(baseData)
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-width", 2)
             .attr("d", curveLine);
 
-        // Grayed out areas
-        svg.append("rect")
-            .attr("x", margin.left)
-            .attr("y", margin.top)
-            .attr("width", xScale(leftRange) - margin.left)
-            .attr("height", height - margin.top - margin.bottom)
-            .attr("fill", "lightgray")
-            .attr("opacity", 0.5);
-
-        svg.append("rect")
-            .attr("x", xScale(rightRange))
-            .attr("y", margin.top)
-            .attr("width", width - margin.right - xScale(rightRange))
-            .attr("height", height - margin.top - margin.bottom)
-            .attr("fill", "lightgray")
-            .attr("opacity", 0.5);
-
-        // Highlighted curve portion
-        svg.append("path")
-            .datum(xValues.map((x, i) => [x, yValues[i]])
-                .filter(([x]) => x >= leftRange && x <= rightRange))
-            .attr("fill", "none")
-            .attr("stroke", "firebrick")
-            .attr("stroke-width", 3)
-            .attr("d", curveLine);
-
-        // X Axis
+        // Add the axis X Axis
         // Note how I use groups tag to group different elements in svg to compose the chart
         svg.append("g")
             .attr("transform", `translate(0,${height - margin.bottom})`)
@@ -194,8 +208,7 @@ const DensityPlot = ({data}) => {
 
                                 // triggering the update after setting the temporary constraints
                                 setLeftRange(newLeft)
-                            }
-                            ;
+                            };
 
                         }
                         }
