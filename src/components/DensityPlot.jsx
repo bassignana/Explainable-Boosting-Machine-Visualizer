@@ -28,13 +28,10 @@ const DensityPlot = ({data}) => {
     useEffect(() => {
         if (!svgRef.current) return;
 
-        // Clear any existing SVG content, moved to return function.
-        // d3.select(svgRef.current).selectAll("*").remove();
-
         const width = 500;
         const height = 180;
         // I need a margin so that the svg does not get cropped due to elements being plotted outside of the svg bounds
-        const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+        const margin = { top: 30, right: 30, bottom: 30, left: 30 };
 
         const svg = d3.select(svgRef.current)
             .attr("width", width)
@@ -50,11 +47,11 @@ const DensityPlot = ({data}) => {
         // is reproportioned to the
         // range in pixel of the space that I want to plot into.
         // That is why domain is in unit of the variable and range is in pixel
+        // Note that scale is not for ticks rendering, there is axis for that.
         const xScale = d3.scaleLinear()
             .domain([xValues[0], xValues[xValues.length - 1]])
             .range([margin.left, width - margin.right]);
 
-        // Note that scale is not for ticks rendering, there is axis for that.
         const yScale = d3.scaleLinear()
             .domain([0, Math.max(...yValues)])
             .range([height - margin.bottom, margin.top]);
@@ -65,6 +62,19 @@ const DensityPlot = ({data}) => {
         const curveLine = d3.line()
             .x(d => xScale(d[0]))
             .y(d => yScale(d[1]));
+
+        // Create area generator
+        const areaGenerator = d3.area()
+            .x(d => xScale(d[0]))
+            .y1(d => yScale(d[1]))
+            .y0(yScale(0));
+
+        // Create the full area
+        svg.append("path")
+            .datum(xValues.map((x, i) => [x, yValues[i]]))
+            .attr("fill", "steelblue")
+            .attr("opacity", 0.3)  // Make the fill semi-transparent
+            .attr("d", areaGenerator);
 
         // Full curve
         svg.append("path")
@@ -91,7 +101,7 @@ const DensityPlot = ({data}) => {
             .attr("fill", "lightgray")
             .attr("opacity", 0.5);
 
-        // Highlighted portion
+        // Highlighted curve portion
         svg.append("path")
             .datum(xValues.map((x, i) => [x, yValues[i]])
                 .filter(([x]) => x >= leftRange && x <= rightRange))
