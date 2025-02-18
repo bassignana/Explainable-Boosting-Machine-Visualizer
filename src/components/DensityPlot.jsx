@@ -124,6 +124,44 @@ const DensityPlot = ({data}) => {
             .attr("stroke-width", 2)
             .attr("d", curveLine);
 
+        // Add vertical line for current value
+        svg.append("line")
+            .attr("x1", xScale(data.currentValue))
+            .attr("x2", xScale(data.currentValue))
+            .attr("y1", margin.top)
+            .attr("y2", height - margin.bottom)
+            .attr("stroke", "#2c5282") // Dark blue
+            .attr("stroke-width", 2)
+            .attr("stroke-dasharray", "4,4"); // Dashed line
+
+        // Add label for current value
+        svg.append("text")
+            .attr("x", xScale(data.currentValue))
+            .attr("y", margin.top - 5)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "12px")
+            .attr("fill", "#2c5282")
+            .text("Current");
+
+        // If there's a changed value different from current, add another line
+        if (data.currentValue !== data.changedValue) {
+            svg.append("line")
+                .attr("x1", xScale(data.changedValue))
+                .attr("x2", xScale(data.changedValue))
+                .attr("y1", margin.top)
+                .attr("y2", height - margin.bottom)
+                .attr("stroke", "#c53030") // Dark red
+                .attr("stroke-width", 2)
+                .attr("stroke-dasharray", "4,4");
+
+            svg.append("text")
+                .attr("x", xScale(data.changedValue))
+                .attr("y", margin.top - 5)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("fill", "#c53030")
+                .text("New");
+        }
         // Add the axis X Axis
         // Note how I use groups tag to group different elements in svg to compose the chart
         svg.append("g")
