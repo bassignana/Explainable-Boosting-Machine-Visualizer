@@ -4,24 +4,20 @@ import {TempConstraintsContext} from "./Contexts.jsx";
 import '../global.css';
 
 const DensityPlot = ({data}) => {
-    const tempConstraints = useContext(TempConstraintsContext); // ref
-    // console.log('temporary contraints in density plot', tempConstraints);
-    // console.log('temp constraints left', tempConstraints.current.acceptableRanges.get(data.featureName)?.[0] || 'undefined');
-    // console.log('temp constraints right', tempConstraints.current.acceptableRanges.get(data.featureName)?.[1] || 'undefined');
-    // value={tempConstraints.current.acceptableRanges.get(data.featureName)?.[1] || rightRange}
-    // ^ right intuition, but the current constraints have to come from the plan obj, the data obj, because
-    // each density plot rage values are plan specific.
-    // console.log('single feature constraints: ', data.singleFeatureConstraints);
+    // ref: used to be the place where the local and most up to date state is stored. Then this
+    // up to date state is copied into the 'real' state for plan generation. This local state is
+    // used only for UI updates.
+    // This is done so that the plan generation will be triggered only on the user request and not
+    // on every UI update.
+    const tempConstraints = useContext(TempConstraintsContext);
 
-    // @pattern: every time I need to create a react controlled component, do I need to create a state variable to
-    // update its value every time?
     const [difficulty, setDifficulty] = useState(tempConstraints.current.difficulties?.get(data.featureName) ?? 'neutral');
 
     const [leftRange, setLeftRange] = useState( data.singleFeatureConstraints?.[0] ?? data.histEdge[0]);
     const [rightRange, setRightRange] = useState(data.singleFeatureConstraints?.[1] ?? data.histEdge[data.histEdge.length - 1]);
-    // TODO: verify that useRef is for state that must not trigger a rerender
+
     // It's used for referencing html elements because if I need to keep a reference to the DOM
-    // I need state otherwise I'll lose the reference on rerender. And I cannot use useState bc
+    // I need state otherwise I'll lose the reference on rerender. Also, I cannot use useState because
     // I would cause a rerender on every dom update.
     const svgRef = useRef(null);
 
@@ -30,6 +26,7 @@ const DensityPlot = ({data}) => {
 
         const width = 500;
         const height = 180;
+
         // I need a margin so that the svg does not get cropped due to elements being plotted outside of the svg bounds
         const margin = { top: 30, right: 30, bottom: 30, left: 30 };
 
@@ -37,17 +34,9 @@ const DensityPlot = ({data}) => {
             .attr("width", width)
             .attr("height", height);
 
-        // Prepare data
         const xValues = data.histEdge;
         const yValues = data.histCount;
 
-        // Scales
-        // Used for mapping pixel values to actual values.
-        // The domain, the range of possible values of the thing that I want to plot
-        // is reproportioned to the
-        // range in pixel of the space that I want to plot into.
-        // That is why domain is in unit of the variable and range is in pixel
-        // Note that scale is not for ticks rendering, there is axis for that.
         const xScale = d3.scaleLinear()
             .domain([xValues[0], xValues[xValues.length - 1]])
             .range([margin.left, width - margin.right]);
@@ -56,13 +45,11 @@ const DensityPlot = ({data}) => {
             .domain([0, Math.max(...yValues)])
             .range([height - margin.bottom, margin.top]);
 
-        // Create line generator
-        // d is defined below, when i use .datum in the svg.append("path")
+        // d is defined below, when I use .datum in the svg.append("path")
         const curveLine = d3.line()
             .x(d => xScale(d[0]))
             .y(d => yScale(d[1]));
 
-        // Create area generator
         const areaGenerator = d3.area()
             .x(d => xScale(d[0]))
             .y1(d => yScale(d[1]))
@@ -85,7 +72,7 @@ const DensityPlot = ({data}) => {
             .attr("width", xScale(rightRange) - xScale(leftRange))
             .attr("height", height - margin.top - margin.bottom);
 
-        // Create our visualization in two layers
+        // The visualization is in two layers
         // Layer 1: Gray base (everything grayed out)
         const baseData = xValues.map((x, i) => [x, yValues[i]]);
 
@@ -150,7 +137,7 @@ const DensityPlot = ({data}) => {
                 .attr("x2", xScale(data.changedValue))
                 .attr("y1", margin.top)
                 .attr("y2", height - margin.bottom)
-                .attr("stroke", "#c53030") // Dark red
+                .attr("stroke", "#c53030")
                 .attr("stroke-width", 2)
                 .attr("stroke-dasharray", "4,4");
 
@@ -162,7 +149,8 @@ const DensityPlot = ({data}) => {
                 .attr("fill", "#c53030")
                 .text("New");
         }
-        // Add the axis X Axis
+
+        // Add the X Axis
         // Note how I use groups tag to group different elements in svg to compose the chart
         svg.append("g")
             .attr("transform", `translate(0,${height - margin.bottom})`)
@@ -241,7 +229,6 @@ const DensityPlot = ({data}) => {
                                 // of numbers, as per JSdoc documentation [lower bound, upper bound]
                                 //
                                 // Update both the left and right to accomodate the current data format
-                                // @verified: I update multiple plots at the same time.
                                 tempConstraints.current.acceptableRanges.set(data.featureName, [newLeft, rightRange]);
 
                                 // triggering the update after setting the temporary constraints
