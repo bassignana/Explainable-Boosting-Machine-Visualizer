@@ -7,35 +7,7 @@ import {GAMCoach} from "../ebm/gamcoach.js";
 import {useEffect, useRef, useState} from "react";
 import {TempConstraintsContext} from "./Contexts.jsx";
 import '../global.css'
-import { serializeToJson } from '../utils/utils.js';
-// const data = { name: 'test', values: [1, 2, 3] };
-// // await serializeToJson(data, 'test.json');
 
-// Now we have to implement:
-// plan updates
-// refactoring plan init and plan update into a context
-// using the context effectively to make the app work
-
-
-/*
-* Main Component
-*   Init constraint as state, will use for context.
-*
-*   TEST: is putting the conditional rendering of the plans here,
-*   based on the fact that the async computation is finished or not,
-*   a good idea?
-*
-*   For constraints: I need to keep track of every change in the constraints,
-*   difficulty or range, but without causing any rerender, so I have to use
-*   a Ref. Then on a button click, I need to update the constraints all at once
-*   so just one rerender is done. By definition, the button will be outside the
-*   individual plot component, so some form of drilling or context must be present.
-*   I have to also manage the fact that on subsequent rerenders, i have to call the
-*   updatePlans and not the initPlans: i might use an Effect with the constraints in
-*   the dep array.
-*   NOTE: I cannot simply reuse the initPlan maybe because i have to continue to
-*   loop through optimal plans starting from the first?
-* */
 const difficultyTextMap = {
     1: 'very-easy',
     2: 'easy',
@@ -194,6 +166,7 @@ class Constraints {
         };
     }
 }
+
 // difficulties are Constraints.difficulties
 function featureWeightMultipliers(difficulties) {
     const multipliers = {};
@@ -229,6 +202,7 @@ function featuresToVary(difficulties, allFeatureNames) {
     } else {
         return null;
     }}
+
 class Plan {
     /** @type{Feature[]} */
     features;
@@ -266,13 +240,8 @@ class Plan {
         this.coachSample = cfData;
         this.curExample = curExample;
         this.planIndex = planIndex;
-        // initializing plan constraints
         this.planConstraints = planConstraints
-
-        // Initialize an EBM model associating with the plan
-        // ?
         this.ebmLocal = new EBMLocal(modelParameters, cfData);
-
         this.originalScore = plans.originalScore;
     }
 
@@ -396,7 +365,7 @@ function PlanSelector({plans}) {
     const [selectedIndex, setSelectedIndex] = useState(allAvailableIndexes[0]);
     const selectedPlan = allAvailablePlans[selectedIndex][1];
 
-    // for avoiding doing logic in the rendering JSX
+    // In order to avoid doing logic in the rendering JSX
     // map with uuid as a key and plan index as value for radio buttons loop below
     const radioButtonData = new Map();
     allAvailableIndexes.forEach((id) => {
@@ -412,38 +381,19 @@ function PlanSelector({plans}) {
         const planFeatures = selectedPlan.features;
         const planConstraints = selectedPlan.planConstraints;
         const singlePlanFeature = planFeatures[featureIndex];
-
-        // @bug: the feature display array has the feature names in different order,
-        // or something like that, so in the plots I have the wrong variables.
-        // for now i'll just use the ugly name everywhere.
-        // Or the name could be also be changed manually for changin feature names for
-        // making them have more sense for a demo, but still there is some problems around
-        // plot values
         const featureDisplayName = singlePlanFeature.data.description.displayName;
-
-
         const featureName = singlePlanFeature.data.name;
-        // const featureDifficulty = singlePlanFeature.difficulty;
-        // const featureIsChanged = singlePlanFeature.isChanged; // 0 or 1
         const featureHistEdge = singlePlanFeature.data.histEdge;
         const featureHistCount = singlePlanFeature.data.histCount;
-        // const featureCurrentValue = selectedPlan.curExample;
-        // const featureChangedValue = selectedPlan.coachSample;
-
-        // @bug: trying to solve the bug above with new version of these
-        // in case understand why it is wrong
-        // const singleFeatureCurrentValue = featureCurrentValue[featureIndex];
-        // const singleFeatureChangedValue = featureChangedValue[featureIndex];
-        // see if it is myValue or originalValue, i think original since myValue is the blue thing
-        const singleFeatureCurrentValue = singlePlanFeature.originalValue;
-        const singleFeatureChangedValue = singlePlanFeature.coachValue;
+        const singleFeatureCurrentValue = singlePlanFeature.originalValue;  // current score
+        const singleFeatureChangedValue = singlePlanFeature.coachValue;     // model updated score
 
         // can be undefined or {array[num, num]}
         const singleFeatureConstraints = planConstraints.acceptableRanges.get(featureName);
 
         const data = {
             featureName,
-            featureDisplayName, // see @bug above.
+            featureDisplayName,
             currentValue: singleFeatureCurrentValue,
             changedValue: singleFeatureChangedValue,
             histEdge: featureHistEdge,
@@ -454,13 +404,6 @@ function PlanSelector({plans}) {
         densityPlotData.push(data);
     }
 
-    /*
-    Changes made to the render the radio button selector:
-    use div with a key
-    ids needs to start with a letter, use pattern `plan-${uuid}`
-    the name prop in input is what ties the radio button in one group
-    added checked prop to manage appearences
-    * */
     return (
         <>
             {allAvailableIndexes.map((value, uuid) => {
@@ -487,7 +430,6 @@ function PlanSelector({plans}) {
 }
 
 export default function MainContainer() {
-    // console.log('Main Component global rerender');
     const curExample = randomSamples[0];
     // WHY THE FOLLOWING COMMENT? maybe some state management in the svelte version:
     // Creating the constraints object can change the modelParameters (setting
@@ -497,9 +439,6 @@ export default function MainContainer() {
     const plans = useRef(null);
     const [arePlansLoaded, setArePlansLoaded] = useState(false);
     const model = new EBM(modelParameters);
-    // notice how this is run AFTER the Effect.
-    // Remove to see the logs in the async function.
-    // console.clear();
 
     /**
      * Iteratively populate the plans.
@@ -510,15 +449,6 @@ export default function MainContainer() {
      */
     useEffect(() => {
         const initializePlans = async function(modelParameters, model, curExample, constraints, plans) {
-            // console.log('INIT: input', modelParameters, model, curExample, constraints);
-
-            // moved initialization in state
-            // let constraints = new Constraints(modelParameters, curExample);
-            // await serializeToJson(modelParameters, 'new-initPlans-input-modelParameters.json');
-            // await serializeToJson(model, 'new-initPlans-input-model.json');
-            // await serializeToJson(curExample, 'new-initPlans-input-curExample.json');
-            // await serializeToJson(constraints, 'new-initPlans-input-constraints.json');
-            // // await serializeToJson(plans, 'new-initPlans-input-model.json');
 
             const tempPlans = {
                 isRegression: false,
@@ -546,7 +476,6 @@ export default function MainContainer() {
             // log odd. The output is a single value.
             // originalScore is intended as the score of the model without modifications
             tempPlans.originalScore = model.predict([curExample], true)[0];
-            // console.log('Log odds scores, the output of model.predict(curExample)', tempPlans.originalScore);
 
             // Update the list of continuous features that require integer values
             modelParameters.features.forEach((f) => {
@@ -562,32 +491,15 @@ export default function MainContainer() {
                 }
             });
 
-            // Consume the new constraints
-            // NOT USED IN THIS FILE, hasNewConstraints is true by default
-            // probably use to start some action, probably a conditional update
-            // constraints.hasNewConstraints = false;
-
-            // removed const plans = tempPlans; in favor of updating the ref.
-            // this should do the same as plansUpdated() below;
             plans.current = tempPlans;
-            // await serializeToJson(plans.current, 'new-initPlans-input-tempPlans.json');
-
-            // console.log('plans', plans);
-
-            // plansUpdated(plans);
-            // here probably the global context is updated with the newly created plans
-            // which is reasonable since the initPlan function could be called anywhere
-            // BUT, updating the context with only the tempPlans seems unnecessary,
-            // maybe is done as a workaround to trigger something specific to svelte.
 
             /*
-             * Generate the initial 5 plans. We can use topK = 5, but we will have to
+             * Generate the initial 5 plans. The one first, then the other 4 below.
+             *  We can use topK = 5, but we will have to
              * wait for a long time. Instead, we progressively generate these top 5
              * plans.
              */
             const coach = new GAMCoach(modelParameters);
-            // await serializeToJson(coach, 'new-initPlans-input-coach.json');
-            // console.log('GAMCoach model:', coach)
             const exampleBatch = [curExample];
             const singleFeatures = new Set();
 
@@ -596,16 +508,13 @@ export default function MainContainer() {
             * the data property:
             * it should be the updated score for each variable, so if I take the differences in values between the curExample
             * and cfs.data, and if they are different, they should give the indication of what variable to change
-            * (assuming that the variables are in the same order as the variables in the features names, which i think they are)
-            *
-            * Can confirm also that they are ordered,
-            * so I need to check my code for plotting and if the values are correct*/
-            // console.time(`Plan ${tempPlans.nextPlanIndex} generated`);
+            * (assuming that the variables are in the same order as the variables in the features names, which
+            * verified that they are)
+            */
             // cf or CF stands for counterfactuals
-            // this cfs is just for ONE PLAN, I don't know what arg does that, maybe totalCfs
             let cfs = await coach.generateCfs({
                 curExample: exampleBatch,
-                totalCfs: 1,
+                totalCfs: 1, // this cfs is just for ONE PLAN.
                 continuousIntegerFeatures: plans.current.continuousIntegerFeatures,
                 featuresToVary: constraints.featuresToVary,
                 featureRanges: constraints.featureRanges,
@@ -613,9 +522,6 @@ export default function MainContainer() {
                 verbose: 0,
                 maxNumFeaturesToVary: constraints.maxNumFeaturesToVary
             });
-            // await serializeToJson(cfs, `new-initPlans-input-cfs${tempPlans.nextPlanIndex}.json`);
-            // console.timeEnd(`Plan ${tempPlans.nextPlanIndex} generated`);
-            // console.log('cfs', cfs);
 
             // If the plan only uses one feature, we store it to a set and avoid future
             // plans that only uses that feature
@@ -626,12 +532,8 @@ export default function MainContainer() {
             }
 
             let curPlan;
-            // I don't use curPlanStore but still I get all my plans in the right obj
-            // let curPlanStore;
 
-            // WHY I'm generating here only ONE plan?
             if (cfs.isSuccessful) {
-                // Convert the plan into a plan object
                 curPlan = new Plan(
                     modelParameters,
                     curExample,
@@ -642,16 +544,9 @@ export default function MainContainer() {
                     constraints
                 );
 
-                // Record the plan as a store and attach it to plans with the planIndex as a key
-                // curPlanStore = writable(curPlan);
-
-                // why am I still referring to the tempPlans instead of plans?
-                // it is just because tempPlans stores the nextPlanIndex
+                // Here I am still referring to the tempPlans instead of plans
+                // just because tempPlans stores the nextPlanIndex
                 plans.current.planStores.set(tempPlans.nextPlanIndex, curPlan);
-
-                // plansUpdated(plans);
-                // maybe here i could call a context update?
-                // console.log('first plan, SUCCESS', curPlan);
             }
 
             // Handle failure case for the FIRST PLAN ONLY
@@ -664,16 +559,11 @@ export default function MainContainer() {
                     i++
                 ) {
                     plans.current.failedPlans.add(i);
-                    // plansUpdated(plans);
-                    // here i should try the generation of a new plan with a different index????
-                    // as stated in the sourct, the plansUpdated is a workaround function to trigger the update
-                    // of the plans variable. Maybe that in the source was triggering the rerun of the init or update
-                    // function.
                 }
 
                 // Handle the case where all plans failed
                 window.alert(
-                    'There is no strategy to change the AI decision under your current configuration. Relax some constraitns and try to regenerate again.'
+                    'There is no strategy to change the AI decision under your current configuration. Relax some constraints and try to regenerate again.'
                 );
                 curPlan = new Plan(
                     modelParameters,
@@ -683,17 +573,13 @@ export default function MainContainer() {
                     tempPlans.nextPlanIndex,
                     constraints
                 );
-                // console.log('FAILURE plans', curPlan);
-                // curPlanStore = writable(curPlan);
                 plans.current.planStores.set(plans.current.activePlanIndex, curPlan);
-
                 plans.current.nextPlanIndex += 5;
-                // plansUpdated(plans);
             }
 
             // Generate the next-optimal CF solutions.
             // generateSubCf should be called after the top-k CFs are generated by generateCfs(),
-            // as it requires the options argument (cfs.nextCfConfig???) (generated from generateCfs()
+            // as it requires the options argument (cfs.nextCfConfig generated from generateCfs?)
             // NOTE in the comment above, there seems to be a contradiction:
             // above i've not generate the top-k solution! i'm splitting up the things so that I don't have
             // to do precisely that!
@@ -705,10 +591,8 @@ export default function MainContainer() {
                     break;
                 }
 
-                // Run gam coach
                 // console.time(`Plan ${tempPlans.nextPlanIndex + i} generated`);
                 cfs = await coach.generateSubCfs(cfs.nextCfConfig);
-                // await serializeToJson(cfs, `new-initPlans-input-cfsSecond${tempPlans.nextPlanIndex}.json`);
                 // console.timeEnd(`Plan ${tempPlans.nextPlanIndex + i} generated`);
 
                 // If the new plan uses only one feature, we mute it and repeat again
@@ -723,7 +607,6 @@ export default function MainContainer() {
                 }
 
                 if (cfs.isSuccessful) {
-                    // Get the plan object
                     curPlan = new Plan(
                         modelParameters,
                         curExample,
@@ -732,10 +615,7 @@ export default function MainContainer() {
                         tempPlans.nextPlanIndex + i,
                         constraints
                     );
-                    // curPlanStore = writable(curPlan);
-                    // console.log('second X plans', curPlan);
                     plans.current.planStores.set(tempPlans.nextPlanIndex + i, curPlan);
-                    // plansUpdated(plans);
                 }
 
                 // Handle failure case
@@ -746,20 +626,15 @@ export default function MainContainer() {
                         j++
                     ) {
                         plans.current.failedPlans.add(j);
-                        // plansUpdated(plans);
                     }
                     break;
                 }
             }
 
-            // Update the next plan index
             plans.current.nextPlanIndex += 5;
             setArePlansLoaded(true);
-            // console.log('INIT: plans at the end of init', plans);
-            // plansUpdated(plans)
-
-            // console.log('OBJ-state FOR PLOTTING: plans and constraints', plans, constraints);
         }
+
         const updatePlans = async function (constraints, modelParameters, curExample, plans) {
             /**
              * Handler for the regenerate button click event. This function regenerates
@@ -773,44 +648,29 @@ export default function MainContainer() {
              *  trigger an update on the plans variable
              * @param {Logger} [logger] Logger object
              */
-            /*    export const regeneratePlans = async (
-                    constraints,
-                    modelParameters,
-                    curExample,
-                    plans,
-                    plansUpdated,
-                    logger = null
-                ) => {*/
+
             /**
              * To generate new plans, we need to complete the following steps:
              *
-             * (1) Empty planStores to make tabs start loading animation
+             * (1) Empty planStores
              * (2) Iteratively generate new plans and their stores
              * (3) Update the active plan index to the first tab when the first plan is
              *  updated => force an update on the feature panel
              * (4) Update the next plan index
              */
 
-            // Consume the new constraints
             // Seems to have no effect on the react implementation.
             // It is the only difference in the constraints obj in the first update
             // between the new and the old version
             constraints.hasNewConstraints = false;
 
-            // Step 1: Empty planStores to make tabs start loading animation
-            // @bug: If i emptly the plans here, then how the info are read from the
-            //       plan obj below? Maybe triggering animation is a svelte thing
-            // plans.planStores = new Map();
-            // plansUpdated(plans)
-
             /*
+            * Step 1:
             * Removing old plans mainly because, due to the fact of how state is drilled for
             * the difficulty changes, in old plan I see updated difficulties that are not in
             * sync with the constraints and plans at the moment of calculation.
             * */
             plans.planStores = new Map();
-
-            // console.log('UPDATE FUNCTION constraints: inputs plans', constraints);
 
             // Step 2: Iteratively generate new plans with the new constraints
             const coach = new GAMCoach(modelParameters);
@@ -818,10 +678,6 @@ export default function MainContainer() {
             const singleFeatures = new Set();
 
             // AGAIN it generates only ONE PLAN FIRST, same code as initPlans()
-            // await serializeToJson(coach, `new-initPlans-input-coach${plans.nextPlanIndex}.json`);
-            // await serializeToJson(exampleBatch, `new-initPlans-input-exampleBatch${plans.nextPlanIndex}.json`);
-            // await serializeToJson(plans.planStores, `new-initPlans-input-plansstores${plans.nextPlanIndex}.json`);
-            // await serializeToJson(constraints, `new-initPlans-input-constraints${plans.nextPlanIndex}.json`);
             // console.time(`Plan ${plans.nextPlanIndex} generated`);
             let cfs = await coach.generateCfs({
                 curExample: exampleBatch,
@@ -848,14 +704,10 @@ export default function MainContainer() {
 
             // Step 3: Update the active plan index
             plans.activePlanIndex = plans.nextPlanIndex;
-            // console.log('plans.activePlanIndex', plans.activePlanIndex);
-            // console.log('plans.nextPlanIndex', plans.nextPlanIndex);
 
             let curPlan;
-            //let curPlanStore;
 
             if (cfs.isSuccessful) {
-                // Convert the plan into a plan object
                 curPlan = new Plan(
                     modelParameters,
                     curExample,
@@ -865,24 +717,18 @@ export default function MainContainer() {
                     constraints
                 );
 
-                // Record the plan as a store and attach it to plans with the planIndex as
-                // a key
-                //curPlanStore = writable(curPlan);
                 plans.planStores.set(plans.nextPlanIndex, curPlan);
-                //plansUpdated(plans);
-
             }
 
             // Handle failure case
             if (!cfs.isSuccessful) {
                 for (let j = plans.nextPlanIndex; j < plans.nextPlanIndex + 5; j++) {
                     plans.failedPlans.add(j);
-                    // plansUpdated(plans);
                 }
 
                 // Handle the case where all 5 plans failed
                 window.alert(
-                    'There is no strategy to change the AI decision under your current configuration. Relax some constraitns and try to regenerate again.'
+                    'There is no strategy to change the AI decision under your current configuration. Relax some constraints and try to regenerate again.'
                 );
                 curPlan = new Plan(
                     modelParameters,
@@ -893,12 +739,8 @@ export default function MainContainer() {
                     constraints
                 );
 
-                // curPlanStore = writable(curPlan);
                 plans.planStores.set(plans.activePlanIndex, curPlan);
-
                 plans.nextPlanIndex += 5;
-                // plansUpdated(plans);
-                // return; FIX: I will need this return in initPlans() also?
             }
 
             // Generate other plans
@@ -908,10 +750,8 @@ export default function MainContainer() {
                     break;
                 }
 
-                // Run gam coach
-                console.time(`Plan ${plans.nextPlanIndex + i} generated`);
+                // console.time(`Plan ${plans.nextPlanIndex + i} generated`);
                 cfs = await coach.generateSubCfs(cfs.nextCfConfig);
-                // await serializeToJson(cfs, `new-initPlans-input-cfsUpdate${plans.nextPlanIndex}.json`);
                 // console.timeEnd(`Plan ${plans.nextPlanIndex + i} generated`);
 
                 // If the new plan uses only one feature, we mute it and repeat again
@@ -926,7 +766,6 @@ export default function MainContainer() {
                 }
 
                 if (cfs.isSuccessful) {
-                    // Get the plan object
                     curPlan = new Plan(
                         modelParameters,
                         curExample,
@@ -935,68 +774,44 @@ export default function MainContainer() {
                         plans.nextPlanIndex + i,
                         constraints
                     );
-
-                    // curPlanStore = writable(curPlan);
                     plans.planStores.set(plans.nextPlanIndex + i, curPlan);
-                    // plansUpdated(plans);
-
                 }
 
                 // Handle failure case
                 if (!cfs.isSuccessful) {
                     for (let j = plans.nextPlanIndex + i; j < plans.nextPlanIndex + 5; j++) {
                         plans.failedPlans.add(j);
-                        // plansUpdated(plans);
                     }
                     break;
                 }
             }
 
-            // Update the next plan index
             plans.nextPlanIndex += 5;
-            // plansUpdated(plans);
             setArePlansLoaded(true);
-            // console.log('Update function, END Plans', plans);
         }
 
         if (constraints.acceptableRanges.size === 0 && constraints.difficulties.size === 0) {
-            // console.log('Calling initializePlans');
             initializePlans(modelParameters, model, curExample, constraints, plans);
         } else {
             setArePlansLoaded(false); // Reset loading state
             updatePlans(constraints, modelParameters, curExample, plans.current)
                 .then(() => setArePlansLoaded(true));
         }
-
     }, [constraints]);
 
     let plansDisplayElement = <div>Loading...</div>
-    // console.log('are plans loaded var', arePlansLoaded);
+
     if (arePlansLoaded) {
         plansDisplayElement = <PlanSelector plans={plans.current}></PlanSelector>
     }
 
     // the indexes of the planStore map start at 0, even if inside every obj there is a key that starts from 1
-    // const plansIndexes = Array.from(Array([...plans.current.planStores].length).keys());
     return (
         <TempConstraintsContext.Provider value={tempConstraints}>
-            {/*<div>The ui is rendering first, while the async stuff is executing. As expected</div>*/}
-            {/*<button onClick={() => console.log(plans)}>Log current plans</button>
-            <button onClick={() => console.log(Array.from(Array([...plans.current.planStores].length).keys()))}>Log plans indexes</button>*/}
             <button onClick={() => {
-                // console.log('tempConstraints.current: ', tempConstraints.current);
                 setConstraints({...tempConstraints.current});
             }}>Regenerate Plans</button>
             <br></br>
-            {/*// var 8 onward I have error: data.histEdge[0] is undefined*/}
-            {/*// bc they are interaction effects. For now I don't show them to not confuse the user.*/}
-            {/*{modelParameters.features.filter((f) => f.type !== 'interaction').map((f) => <DensityPlot3 data={f} key={f.name}/>)}*/}
-
-            {/*I want to pass as little state as possible: plans and constraints. Can I use just that?*/}
-            {/*The minimal state that I can pass is [...plans.planStores][planIndex][1] ?
-            No, because I have to select a specific feature to be plotted, so I either create
-            a component to do that, or I loop here or In the OuterLoopDisplay, which might be better*/}
-            {/*<DensityPlot3 data={[...plans.planStores][0][1]}/>*/}
 
             {plansDisplayElement}
 
