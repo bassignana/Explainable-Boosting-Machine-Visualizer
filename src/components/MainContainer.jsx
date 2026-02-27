@@ -519,6 +519,7 @@ export default function MainContainer() {
                 featuresToVary: constraints.featuresToVary,
                 featureRanges: constraints.featureRanges,
                 featureWeightMultipliers: constraints.featureWeightMultipliers,
+                targetRange: [plans.originalScore + 1, Infinity],  // Added for managing regressions task
                 verbose: 0,
                 maxNumFeaturesToVary: constraints.maxNumFeaturesToVary
             });
@@ -690,6 +691,7 @@ export default function MainContainer() {
                 // Note that here the format is the same as the svelte version, is just that the debugger prints constraints.acceptableRanges instead of the Object
                 featureRanges: Object.fromEntries(constraints.acceptableRanges),
                 featureWeightMultipliers: featureWeightMultipliers(constraints.difficulties), // {} can be a default. Copying default from svelte, original was constraints.featureWeightMultipliers, // seems to be about only difficulty management
+                targetRange: [plans.originalScore + 1, Infinity], // Added for managing regression.
                 verbose: 0,
                 maxNumFeaturesToVary: constraints.maxNumFeaturesToVary
             });
@@ -790,6 +792,9 @@ export default function MainContainer() {
             setArePlansLoaded(true);
         }
 
+        // Since targetRange cannot be null when the model is a regressor,
+        // I add it here. This will need to be refactored to take into account
+        // both Regressors and Classifiers.
         if (constraints.acceptableRanges.size === 0 && constraints.difficulties.size === 0) {
             initializePlans(modelParameters, model, curExample, constraints, plans);
         } else {

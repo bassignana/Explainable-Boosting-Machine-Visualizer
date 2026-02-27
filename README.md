@@ -1,6 +1,15 @@
 # Documentation
 
-# Documentation
+`npm run dev`
+
+Per generare una variante dell'applicazione con nuovi dati basta,
+al momento, caricare i due file prodotti dal progetto streamlit-ebm
+nella cartella src/data e rinominarli correttamente.
+I file di input non hanno bisogno di edit, per ora.
+
+[] Verificare in qualche modo i risultati dei vari aggiornamenti.
+
+# Old Documentation
 
 ## EBM (Explainable Boosting Machine) Implementation Notes
 
